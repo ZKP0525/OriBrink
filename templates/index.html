@@ -6,24 +6,142 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>L0 级别数据查询</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; margin: 0; padding: 20px; background-color: #f4f7f6; color: #333; }
-        .container { max-width: 900px; margin: auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        h1 { text-align: center; color: #2c3e50; }
-        .form-group { margin-bottom: 15px; display: flex; align-items: center; gap: 10px; }
-        .form-group label { font-weight: bold; min-width: 80px; }
-        .form-group input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; flex-grow: 1; }
-        .form-group button { padding: 8px 15px; background-color: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; }
-        .form-group button:hover { background-color: #2980b9; }
-        #results, #chart-container { margin-top: 20px; border-top: 1px solid #eee; padding-top: 20px; }
-        #loading, #error { text-align: center; font-weight: bold; display: none; padding: 20px; }
-        #loading { color: #3498db; }
-        #error { color: #e74c3c; }
-        .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; }
-        .metric-item { background: #ecf0f1; padding: 10px; border-radius: 5px; }
-        .metric-item strong { color: #2980b9; }
+        /* --- General Styles --- */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f2f5;
+            color: #333;
+        }
+        .container {
+            max-width: 1200px;
+            margin: auto;
+            background: #fff;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+        h1 {
+            text-align: center;
+            color: #1a2c42;
+            margin-bottom: 25px;
+        }
+
+        /* --- Form Styles --- */
+        .form-group {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap; /* 允许在小屏幕上换行 */
+        }
+        .form-group label {
+            font-weight: 600;
+            color: #555;
+        }
+        .form-group input {
+            padding: 10px;
+            border: 1px solid #dcdfe6;
+            border-radius: 6px;
+            flex-grow: 1;
+            min-width: 150px;
+            transition: border-color 0.2s;
+        }
+        .form-group input:focus {
+            outline: none;
+            border-color: #409eff;
+        }
+        .form-group button {
+            padding: 10px 20px;
+            background-color: #409eff;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+        .form-group button:hover {
+            background-color: #66b1ff;
+        }
+        
+        /* --- Results & Metrics (Categorized Layout) --- */
+        #results {
+            border-top: 1px solid #e4e7ed;
+            padding-top: 20px;
+        }
+        #stock-title {
+            text-align: center;
+            font-size: 1.5em;
+            color: #303133;
+            margin-bottom: 20px;
+        }
+        .metrics-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .metric-category {
+            background-color: #fafafa;
+            border: 1px solid #e4e7ed;
+            border-radius: 8px;
+            padding: 15px;
+        }
+        .metric-category h3 {
+            margin-top: 0;
+            color: #409eff;
+            border-bottom: 2px solid #e4e7ed;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+        .metrics-grid {
+            display: grid;
+            gap: 12px;
+        }
+        .metrics-grid.two-columns { /* For price extremes */
+             grid-template-columns: 1fr 1fr;
+        }
+        .metric-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #fff;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+        .metric-item .key {
+            color: #606266;
+            font-weight: 500;
+        }
+        .metric-item .value {
+            color: #303133;
+            font-weight: bold;
+        }
+
+        /* --- Loading & Error States --- */
+        #loading, #error {
+            text-align: center;
+            font-weight: bold;
+            display: none;
+            padding: 20px;
+            border-radius: 6px;
+            margin-top: 20px;
+        }
+        #loading { color: #409eff; background-color: #ecf5ff; }
+        #error { color: #f56c6c; background-color: #fef0f0; }
+        
+        /* --- Chart --- */
+        #chart-container {
+            margin-top: 30px;
+        }
+
     </style>
     <!-- 引入 Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 </head>
 <body>
 
@@ -33,7 +151,7 @@
         <label for="stock-code">股票代码:</label>
         <input type="text" id="stock-code" value="sz000001">
         <label for="trade-date">交易日期:</label>
-        <input type="date" id="trade-date" value="2024-01-02">
+        <input type="date" id="trade-date" value="2024-01-03">
         <button onclick="fetchData()">查询</button>
     </div>
 
@@ -42,11 +160,35 @@
 
     <div id="results" style="display: none;">
         <h2 id="stock-title"></h2>
-        <div id="metrics-display" class="metrics-grid"></div>
+        
+        <div class="metrics-container">
+            <!-- Category 1: Auction -->
+            <div class="metric-category">
+                <h3>集合竞价</h3>
+                <div id="auction-metrics" class="metrics-grid"></div>
+            </div>
+
+            <!-- Category 2: Overview -->
+            <div class="metric-category">
+                <h3>全天概览</h3>
+                <div id="overview-metrics" class="metrics-grid"></div>
+            </div>
+
+            <!-- Category 3: Limit Status -->
+            <div class="metric-category">
+                <h3>涨停分析</h3>
+                <div id="limit-metrics" class="metrics-grid"></div>
+            </div>
+
+            <!-- Category 4: Price Extremes (spans two columns if possible) -->
+            <div class="metric-category" style="grid-column: span 2;">
+                <h3>价格极值</h3>
+                <div id="extremes-metrics" class="metrics-grid two-columns"></div>
+            </div>
+        </div>
     </div>
 
     <div id="chart-container" style="display: none;">
-        <h3>分时走势图</h3>
         <canvas id="stockChart"></canvas>
     </div>
 </div>
@@ -55,6 +197,7 @@
     let stockChart = null;
 
     async function fetchData() {
+        // ... (this function remains the same as before)
         const code = document.getElementById('stock-code').value;
         const dateStr = document.getElementById('trade-date').value;
 
@@ -63,7 +206,6 @@
             return;
         }
 
-        // UI重置
         document.getElementById('loading').style.display = 'block';
         document.getElementById('error').style.display = 'none';
         document.getElementById('results').style.display = 'none';
@@ -85,43 +227,66 @@
         }
     }
 
-    function displayData(data) {
-        // 显示指标
-        const { metrics, chart_data } = data;
-        document.getElementById('stock-title').textContent = `${metrics['股票名称']} (${metrics['股票代码']}) - ${metrics['交易日期']}`;
-        
-        const metricsContainer = document.getElementById('metrics-display');
-        metricsContainer.innerHTML = ''; // 清空旧数据
-        
-        // 排除一些辅助信息，只显示核心指标
-        const displayOrder = [
-            "竞价涨幅", "竞价量能(元)", "换手率", "全天最高", "全天最高时间", "全天最低", "全天最低时间",
-            "上午最高", "上午最高时间", "上午最低", "上午最低时间", "下午最高", "下午最高时间", "下午最低", "下午最低时间",
-            "是否涨停", "是否炸板", "是否烂板", "尾盘表现"
-        ];
-        
-        // 按照指定顺序展示
-        for (const key of displayOrder) {
-            if (metrics[key] !== undefined) {
-                 const value = metrics[key];
-                 metricsContainer.innerHTML += `
+    function populateMetrics(container, keys, data) {
+        container.innerHTML = '';
+        for (const key of keys) {
+            if (data[key] !== undefined) {
+                const value = data[key];
+                container.innerHTML += `
                     <div class="metric-item">
-                        <strong>${key}:</strong> ${value}
+                        <span class="key">${key}:</span>
+                        <span class="value">${value}</span>
                     </div>
                 `;
             }
         }
+    }
+
+    function displayData(data) {
+        const { metrics, chart_data } = data;
+        
+        document.getElementById('stock-title').textContent = `${metrics['股票名称']} (${metrics['股票代码']}) - ${metrics['交易日期']}`;
+        
+        // --- 更新 categories 对象以包含新指标 ---
+        const categories = {
+            'auction-metrics': [
+                "竞价涨幅", 
+                "竞价量能(元)",
+                "竞价量能/昨日竞价量能",
+                "竞价量能/昨日总量能"
+            ],
+            'overview-metrics': [
+                "全天成交额",
+                "换手率", 
+                "尾盘表现",
+                "尾盘成交占比"
+            ],
+            'limit-metrics': [
+                "是否涨停", 
+                "是否炸板", 
+                "是否烂板"
+            ],
+            'extremes-metrics': [
+                "全天最高", "全天最高时间", "全天最低", "全天最低时间",
+                "上午最高", "上午最高时间", "上午最低", "上午最低时间",
+                "下午最高", "下午最高时间", "下午最低", "下午最低时间",
+            ]
+        };
+
+        for (const containerId in categories) {
+            const container = document.getElementById(containerId);
+            const keys = categories[containerId];
+            populateMetrics(container, keys, metrics);
+        }
         
         document.getElementById('results').style.display = 'block';
 
-        // 绘制图表
+        // --- 绘制图表 (代码不变) ---
         if (chart_data && chart_data.length > 0) {
             document.getElementById('chart-container').style.display = 'block';
             const ctx = document.getElementById('stockChart').getContext('2d');
             
-            if (stockChart) {
-                stockChart.destroy(); // 销毁旧图表实例
-            }
+            if (stockChart) { stockChart.destroy(); }
             
             stockChart = new Chart(ctx, {
                 type: 'line',
@@ -130,10 +295,12 @@
                     datasets: [{
                         label: '分时价格',
                         data: chart_data.map(d => d.price),
-                        borderColor: 'rgb(75, 192, 192)',
+                        borderColor: 'rgb(54, 162, 235)',
+                        backgroundColor: 'rgba(54, 162, 235, 0.1)',
                         borderWidth: 1.5,
-                        pointRadius: 0, // 不显示数据点
-                        tension: 0.1
+                        pointRadius: 0,
+                        tension: 0,
+                        fill: true,
                     }]
                 },
                 options: {
@@ -141,12 +308,19 @@
                         x: {
                             ticks: {
                                 maxRotation: 0,
-                                minRotation: 0,
                                 autoSkip: true,
-                                maxTicksLimit: 10 // 控制X轴标签密度
-                            }
-                        }
-                    }
+                                maxTicksLimit: 10,
+                                callback: function(value, index, ticks) {
+                                    const label = this.getLabelForValue(value);
+                                    const keyTimes = ['09:25', '10:30', '11:30', '14:00', '15:00'];
+                                    return keyTimes.includes(label) ? label : null;
+                                }
+                            },
+                            grid: { color: '#e4e7ed' }
+                        },
+                        y: { position: 'right', grid: { color: '#e4e7ed' } }
+                    },
+                    plugins: { legend: { display: false } }
                 }
             });
         }
