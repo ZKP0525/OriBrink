@@ -1,0 +1,157 @@
+<!-- templates/index.html -->
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>L0 级别数据查询</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; margin: 0; padding: 20px; background-color: #f4f7f6; color: #333; }
+        .container { max-width: 900px; margin: auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #2c3e50; }
+        .form-group { margin-bottom: 15px; display: flex; align-items: center; gap: 10px; }
+        .form-group label { font-weight: bold; min-width: 80px; }
+        .form-group input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; flex-grow: 1; }
+        .form-group button { padding: 8px 15px; background-color: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        .form-group button:hover { background-color: #2980b9; }
+        #results, #chart-container { margin-top: 20px; border-top: 1px solid #eee; padding-top: 20px; }
+        #loading, #error { text-align: center; font-weight: bold; display: none; padding: 20px; }
+        #loading { color: #3498db; }
+        #error { color: #e74c3c; }
+        .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; }
+        .metric-item { background: #ecf0f1; padding: 10px; border-radius: 5px; }
+        .metric-item strong { color: #2980b9; }
+    </style>
+    <!-- 引入 Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<div class="container">
+    <h1>L0 级别数据查询</h1>
+    <div id="query-form" class="form-group">
+        <label for="stock-code">股票代码:</label>
+        <input type="text" id="stock-code" value="sz000001">
+        <label for="trade-date">交易日期:</label>
+        <input type="date" id="trade-date" value="2024-01-02">
+        <button onclick="fetchData()">查询</button>
+    </div>
+
+    <div id="loading">正在加载数据...</div>
+    <div id="error"></div>
+
+    <div id="results" style="display: none;">
+        <h2 id="stock-title"></h2>
+        <div id="metrics-display" class="metrics-grid"></div>
+    </div>
+
+    <div id="chart-container" style="display: none;">
+        <h3>分时走势图</h3>
+        <canvas id="stockChart"></canvas>
+    </div>
+</div>
+
+<script>
+    let stockChart = null;
+
+    async function fetchData() {
+        const code = document.getElementById('stock-code').value;
+        const dateStr = document.getElementById('trade-date').value;
+
+        if (!code || !dateStr) {
+            alert('请输入股票代码和日期');
+            return;
+        }
+
+        // UI重置
+        document.getElementById('loading').style.display = 'block';
+        document.getElementById('error').style.display = 'none';
+        document.getElementById('results').style.display = 'none';
+        document.getElementById('chart-container').style.display = 'none';
+        
+        try {
+            const response = await fetch(`/api/l0-data?code=${code}&date_str=${dateStr}`);
+            if (!response.ok) {
+                const errData = await response.json();
+                throw new Error(errData.detail || `服务器错误: ${response.status}`);
+            }
+            const data = await response.json();
+            displayData(data);
+        } catch (error) {
+            document.getElementById('error').textContent = `查询失败: ${error.message}`;
+            document.getElementById('error').style.display = 'block';
+        } finally {
+            document.getElementById('loading').style.display = 'none';
+        }
+    }
+
+    function displayData(data) {
+        // 显示指标
+        const { metrics, chart_data } = data;
+        document.getElementById('stock-title').textContent = `${metrics['股票名称']} (${metrics['股票代码']}) - ${metrics['交易日期']}`;
+        
+        const metricsContainer = document.getElementById('metrics-display');
+        metricsContainer.innerHTML = ''; // 清空旧数据
+        
+        // 排除一些辅助信息，只显示核心指标
+        const displayOrder = [
+            "竞价涨幅", "竞价量能(元)", "换手率", "全天最高", "全天最高时间", "全天最低", "全天最低时间",
+            "上午最高", "上午最高时间", "上午最低", "上午最低时间", "下午最高", "下午最高时间", "下午最低", "下午最低时间",
+            "是否涨停", "是否炸板", "是否烂板", "尾盘表现"
+        ];
+        
+        // 按照指定顺序展示
+        for (const key of displayOrder) {
+            if (metrics[key] !== undefined) {
+                 const value = metrics[key];
+                 metricsContainer.innerHTML += `
+                    <div class="metric-item">
+                        <strong>${key}:</strong> ${value}
+                    </div>
+                `;
+            }
+        }
+        
+        document.getElementById('results').style.display = 'block';
+
+        // 绘制图表
+        if (chart_data && chart_data.length > 0) {
+            document.getElementById('chart-container').style.display = 'block';
+            const ctx = document.getElementById('stockChart').getContext('2d');
+            
+            if (stockChart) {
+                stockChart.destroy(); // 销毁旧图表实例
+            }
+            
+            stockChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: chart_data.map(d => d.time),
+                    datasets: [{
+                        label: '分时价格',
+                        data: chart_data.map(d => d.price),
+                        borderColor: 'rgb(75, 192, 192)',
+                        borderWidth: 1.5,
+                        pointRadius: 0, // 不显示数据点
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    scales: {
+                        x: {
+                            ticks: {
+                                maxRotation: 0,
+                                minRotation: 0,
+                                autoSkip: true,
+                                maxTicksLimit: 10 // 控制X轴标签密度
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    }
+</script>
+
+</body>
+</html>
