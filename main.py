@@ -59,7 +59,7 @@ async def get_l0_data(code: str, date_str: str):
         pre_market_df["trade_datetime"] = pd.to_datetime(pre_market_df["trade_date"])
         # 找到 09:25:00 或之前的最后一条记录作为最终竞价结果
         auction_time_point = time(9, 25, 0)
-        final_auction_data = pre_market_df[pre_market_df["trade_datetime"].dt.time <= auction_time_point].tail(1)
+        final_auction_data = pre_market_df[pre_market_df["trade_datetime"].dt.time >= auction_time_point].tail(1)
 
         if not final_auction_data.empty:
             auction_price = final_auction_data["current"].iloc[0]

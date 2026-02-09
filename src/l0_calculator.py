@@ -60,7 +60,8 @@ def calculate_auction_info(
 
     df = pre_market_df.copy()
     df["trade_datetime"] = pd.to_datetime(df["trade_date"])
-    auction_data = df[df["trade_datetime"].dt.time == time(9, 25, 0)]
+    auction_time_point = time(9, 25, 0)
+    auction_data = df[df["trade_datetime"].dt.time >= auction_time_point].tail(1)
 
     if auction_data.empty:
         return result
@@ -81,7 +82,11 @@ def calculate_auction_info(
         # 获取昨日竞价量能
         prev_pre_market_df = prev_day_data["pre_market_3s"].copy()
         prev_pre_market_df["trade_datetime"] = pd.to_datetime(prev_pre_market_df["trade_date"])
-        prev_auction_data = prev_pre_market_df[prev_pre_market_df["trade_datetime"].dt.time == time(9, 25, 0)]
+
+        prev_auction_time_point = time(9, 25, 0)
+        prev_auction_data = prev_pre_market_df[
+            prev_pre_market_df["trade_datetime"].dt.time >= prev_auction_time_point
+        ].tail(1)
 
         if not prev_auction_data.empty:
             prev_auction_amount = prev_auction_data["amount"].iloc[0]
@@ -257,6 +262,7 @@ def calculate_all_l0_metrics(day_date: date, code: str) -> Dict[str, Any]:
     # 1. 加载当天和上一个交易日的数据
     today_data = data_loader.load_by_date_and_code(day_date, code)
     prev_day_data = _get_previous_trading_day_data(code, day_date)
+    # print(prev_day_data)
 
     daily_df = today_data[data_loader.DAILY_MARKET_KEY]
     min1_df = today_data[data_loader.MARKET_TRADE_1MIN_KEY]
@@ -285,3 +291,7 @@ def calculate_all_l0_metrics(day_date: date, code: str) -> Dict[str, Any]:
     l0_metrics["交易日期"] = day_date.isoformat()
 
     return l0_metrics
+
+
+if __name__ == "__main__":
+    print(calculate_all_l0_metrics(date(2024, 1, 3), "sh600000"))
