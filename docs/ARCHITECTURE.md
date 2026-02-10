@@ -201,8 +201,21 @@ flowchart TB
 ## 10. 技术选型（当前建议）
 
 1. Python 3.11+
-2. FastAPI + Uvicorn
-3. PostgreSQL 15+
-4. Redis 7+
-5. pandas/numpy/ta/vectorbt（或 backtrader）
-6. APScheduler（起步）或 Celery（任务量变大后）
+2. uv（依赖与命令执行）
+3. FastAPI + Uvicorn
+4. PostgreSQL 15+
+5. Redis 7+
+6. pandas/numpy/ta/vectorbt（或 backtrader）
+7. APScheduler（起步）或 Celery（任务量变大后）
+
+## 11. 标准运行命令（统一为 uv）
+
+1. 初始化：`bash scripts/bootstrap.sh`
+2. 启动依赖：`docker compose up -d`
+3. 启动 API：`uv run oribrink-api`
+4. 启动调度器：`uv run oribrink-scheduler`
+5. 健康检查：`curl http://localhost:8000/health`
+6. 代码检查与测试：
+- `uv run ruff check .`
+- `uv run mypy services shared`
+- `uv run pytest`

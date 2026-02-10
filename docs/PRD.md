@@ -208,6 +208,25 @@ Phase 3（8~12 周）做稳定性与扩展：
 7. 建交易日志模板（强制字段）。
 8. 建每周复盘模板并开始沉淀样本。
 
+## 10. 工程工具与标准命令（统一为 uv）
+
+工具栈（执行层）：
+1. `uv`：依赖同步、虚拟环境、命令执行统一入口。
+2. `docker compose`：本地 PostgreSQL/Redis。
+3. `FastAPI + Uvicorn`：API 服务。
+4. `APScheduler`：定时任务。
+
+标准命令：
+1. 初始化：`bash scripts/bootstrap.sh`
+2. 启动依赖：`docker compose up -d`
+3. 启动 API：`uv run oribrink-api`
+4. 启动调度器：`uv run oribrink-scheduler`
+5. 健康检查：`curl http://localhost:8000/health`
+6. 检查与测试：
+- `uv run ruff check .`
+- `uv run mypy services shared`
+- `uv run pytest`
+
 ---
 
 这版 PRD 作为内部执行文档使用，后续只维护三类变更：
