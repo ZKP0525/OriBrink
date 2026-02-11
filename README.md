@@ -14,6 +14,7 @@ bash scripts/bootstrap.sh
 Notes:
 - Recommended Python: `3.11+`
 - Requires `uv`: https://docs.astral.sh/uv/getting-started/installation/
+- RQData credentials must stay in local `.env` only. Do not commit keys.
 
 ### 2. Start local dependencies
 
@@ -52,6 +53,40 @@ uv run pytest
 uv run alembic upgrade head
 uv run alembic current
 bash scripts/check.sh
+uv run python scripts/rqdata_smoke_test.py
+uv run python scripts/run_rqdata_daily_ingest.py --symbols 000001.XSHE --start 2026-02-01 --end 2026-02-10
+```
+
+## RQData configuration
+
+Preferred: use URI/license mode.
+
+Example:
+
+```env
+RQDATA_AUTH_MODE=uri
+RQDATA_URI=rqdata://license:<your-rqdata-license>@rqdatad-pro.ricequant.com:16011
+```
+
+Then run:
+
+```bash
+uv run python scripts/rqdata_smoke_test.py
+uv run alembic upgrade head
+uv run python scripts/run_rqdata_daily_ingest.py --symbols 000001.XSHE --start 2026-02-01 --end 2026-02-10
+```
+
+Optional helper script:
+
+```bash
+bash scripts/setup_rqdata_env.sh "<your-rqdata-license>"
+```
+
+Fallback (kwargs mode):
+
+```env
+RQDATA_AUTH_MODE=kwargs
+RQDATA_INIT_KWARGS_JSON={"username":"...","password":"...","addr":"rqdatad-pro.ricequant.com:16011"}
 ```
 
 ## Project Structure

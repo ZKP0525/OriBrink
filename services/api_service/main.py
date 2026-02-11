@@ -1,11 +1,13 @@
 from fastapi import FastAPI
 
 from services.api_service.health import check_postgres, check_redis
+from services.api_service.market import router as market_router
 from shared.config import settings
 from shared.logging import configure_logging
 
 configure_logging()
 app = FastAPI(title=settings.app_name)
+app.include_router(market_router)
 
 
 @app.get("/health")
