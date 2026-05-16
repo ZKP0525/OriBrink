@@ -4,7 +4,7 @@ import datetime as dt
 from zoneinfo import ZoneInfo
 
 from oribrink import tasks
-from oribrink.models import AuctionData, DailyBar, States, ZtRow
+from oribrink.models import AuctionData, DailyBar, States, TaskName, ZtRow
 
 
 def _bars(code, spec):
@@ -86,6 +86,42 @@ def test_kanglong_uses_snapshot_cache_on_rerun(storage, cfg, monkeypatch):
     assert second["cached"] is True
     assert second["signals"][0]["code"] == "000001"
     assert second["signals"][0]["prev_lianban_count"] == 3
+
+
+def test_kanglong_cached_rerun_sends_unnotified_signal(storage, cfg, monkeypatch):
+    monkeypatch.setattr(
+        tasks, "fetch_previous_zt_pool",
+        lambda d: [ZtRow(code="000001", name="甲", lianban_count=3,
+                         free_market_cap=5e9, industry="软件")],
+    )
+    monkeypatch.setattr(
+        tasks, "fetch_zt_pool",
+        lambda d: [ZtRow(code="000001", name="甲", lianban_count=1,
+                         break_board_count=2, free_market_cap=5e9,
+                         industry="软件")],
+    )
+    monkeypatch.setattr(tasks, "fetch_zbgc_pool", lambda d: [])
+    monkeypatch.setattr(
+        tasks, "fetch_daily_hist",
+        lambda c, s, e: _bars(c, [("2025-05-15", 10.0, 100.0),
+                                  ("2025-05-16", 11.0, 400.0)]),
+    )
+
+    tasks.run_kanglong_task(storage, cfg, "2025-05-16", send=False)
+    sent = []
+
+    def fake_send_email(email_cfg, subject, html):
+        sent.append((subject, html))
+        return True
+
+    monkeypatch.setattr(tasks, "send_email", fake_send_email)
+    second = tasks.run_kanglong_task(storage, cfg, "2025-05-16", send=True)
+
+    assert second["cached"] is True
+    assert sent and "亢龙有悔" in sent[0][0]
+    assert storage.unnotified_transitions(
+        "2025-05-16", TaskName.KANGLONG, States.KANGLONG
+    ) == []
 
 
 def test_kanglong_weekend_uses_latest_weekday(storage, cfg, monkeypatch):

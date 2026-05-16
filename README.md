@@ -74,13 +74,13 @@ cp config.example.toml config.toml
 ## 日常命令
 
 ```bash
-ob kanglong                                # 计算最近交易日亢龙有悔
-ob kanglong --no-send                      # 不发送邮件
+ob kanglong                                # 计算最近交易日亢龙有悔，不发送邮件
+ob kanglong --send                         # 计算最近交易日亢龙有悔，并发送邮件
 ob kanglong --date 2025-05-15              # 计算指定日期亢龙有悔
 ob kanglong --date 2025-05-15 --refresh    # 忽略缓存，重新查询数据源
 
-ob qianlong                                # 计算最近可用交易日潜龙在渊
-ob qianlong --no-send                      # 不发送邮件
+ob qianlong                                # 计算最近可用交易日潜龙在渊，不发送邮件
+ob qianlong --send                         # 计算最近可用交易日潜龙在渊，并发送邮件
 ob qianlong --date 2025-05-15              # 查看已缓存日期
 ob qianlong --date 2025-05-15 --refresh    # 最近交易日可忽略缓存重算
 ```
