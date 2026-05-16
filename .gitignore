@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+build/
+dist/
+
+# uv
+uv.lock
+
+# 运行时数据 / 本地配置
+data/*
+!data/tushare/
+!data/tushare/raw/
+!data/tushare/raw/**
+*.db
+*.sqlite
+*.sqlite3
+config.toml
+*.log
+exports/
