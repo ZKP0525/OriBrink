@@ -2,8 +2,8 @@
 
 只保留两个命令：
 
-  ob kanglong  [--date] [--no-send]
-  ob qianlong  [--date] [--no-send]
+  ob kanglong  [--date] [--send]
+  ob qianlong  [--date] [--send]
   ob collect   --from YYYY-MM-DD --to YYYY-MM-DD
   ob backtest  --from YYYY-MM-DD --to YYYY-MM-DD
   ob web       [--host] [--port]
@@ -141,28 +141,28 @@ def _print_backtest_summary(result: dict) -> None:
 @app.command("kanglong")
 def run_kanglong(
     date: str = typer.Option(_TODAY, "--date", "-d", help="交易日 YYYY-MM-DD"),
-    no_send: bool = typer.Option(False, "--no-send", help="不发送邮件"),
+    send: bool = typer.Option(False, "--send", help="发送邮件"),
     refresh: bool = typer.Option(False, "--refresh", help="忽略缓存，重新查询数据源"),
     config: Optional[str] = typer.Option(None, "--config", "-c"),
 ):
     """亢龙有悔：用昨日涨停连板数据生成候选，再用当日数据判断。"""
     cfg = load_config(config)
     with open_storage(cfg.storage.db_path) as st:
-        result = run_kanglong_task(st, cfg, date, send=not no_send, refresh=refresh)
+        result = run_kanglong_task(st, cfg, date, send=send, refresh=refresh)
     _print_result(result, f"{result.get('trade_date', date)} 亢龙有悔")
 
 
 @app.command("qianlong")
 def run_qianlong(
     date: str = typer.Option(_TODAY, "--date", "-d", help="交易日 YYYY-MM-DD"),
-    no_send: bool = typer.Option(False, "--no-send", help="不发送邮件"),
+    send: bool = typer.Option(False, "--send", help="发送邮件"),
     refresh: bool = typer.Option(False, "--refresh", help="忽略缓存，重新查询数据源"),
     config: Optional[str] = typer.Option(None, "--config", "-c"),
 ):
     """潜龙在渊：支持已缓存日期；未缓存历史日期暂不回算。"""
     cfg = load_config(config)
     with open_storage(cfg.storage.db_path) as st:
-        result = run_qianlong_task(st, cfg, date, send=not no_send, refresh=refresh)
+        result = run_qianlong_task(st, cfg, date, send=send, refresh=refresh)
     _print_result(result, f"{result.get('trade_date', date)} 潜龙在渊")
 
 

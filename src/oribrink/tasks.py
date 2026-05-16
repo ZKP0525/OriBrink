@@ -157,6 +157,62 @@ def _transition_metrics_by_code(
     return metrics
 
 
+def _send_task_email(
+    storage: Storage,
+    cfg: Config,
+    send: bool,
+    task_label: str,
+    subject: str,
+    html: str,
+    has_content: bool,
+    transitions: list[dict],
+) -> None:
+    if not send:
+        log.info("%s邮件跳过：命令指定不发送", task_label)
+        return
+    if not has_content and not cfg.email.send_when_empty:
+        log.info("%s邮件跳过：无新增信号且 send_when_empty=false", task_label)
+        return
+
+    log.info(
+        "%s邮件进入发送流程：subject=%s，新增信号=%d，收件人=%d",
+        task_label,
+        subject,
+        len(transitions),
+        len(cfg.email.recipients),
+    )
+    if send_email(cfg.email, subject, html):
+        storage.mark_notified([t["id"] for t in transitions])
+
+
+def _send_cached_task_email(
+    storage: Storage,
+    cfg: Config,
+    send: bool,
+    task_label: str,
+    trade_date: str,
+    task_name: str,
+    state: str,
+    snapshot_status: str,
+    anomalies: list[str],
+    builder,
+) -> None:
+    transitions = storage.unnotified_transitions(trade_date, task_name, state)
+    if not transitions:
+        reason = (
+            "命中缓存且无待通知新增信号"
+            if send else "命令指定不发送"
+        )
+        log.info("%s邮件跳过：%s", task_label, reason)
+        return
+    subject, html, has_content = builder(
+        trade_date, transitions, snapshot_status, anomalies
+    )
+    _send_task_email(
+        storage, cfg, send, task_label, subject, html, has_content, transitions
+    )
+
+
 def _cached_signals(
     storage: Storage, trade_date: str, snapshot_type: str, state: str
 ) -> list[dict]:
@@ -337,6 +393,11 @@ def run_kanglong_task(
         )
         if cached:
             cached["trade_date"] = trade_date
+            _send_cached_task_email(
+                storage, cfg, send, "亢龙有悔", trade_date, TaskName.KANGLONG,
+                States.KANGLONG, cached["snapshot"], cached.get("anomalies", []),
+                build_kanglong_email,
+            )
             return cached
 
     run_id = storage.start_task_run(TaskName.KANGLONG, trade_date)
@@ -375,9 +436,7 @@ def run_kanglong_task(
         trade_date, TaskName.KANGLONG, States.KANGLONG
     )
     subject, html, has = build_kanglong_email(trade_date, new_kl, snap_status, anomalies)
-    if send and (has or cfg.email.send_when_empty):
-        if send_email(cfg.email, subject, html):
-            storage.mark_notified([t["id"] for t in new_kl])
+    _send_task_email(storage, cfg, send, "亢龙有悔", subject, html, has, new_kl)
 
     status = TaskStatus.PARTIAL if anomalies else TaskStatus.SUCCESS
     storage.finish_task_run(
@@ -578,6 +637,11 @@ def run_qianlong_task(
             cached["trade_date"] = trade_date
             if data_note:
                 cached["data_note"] = data_note
+            _send_cached_task_email(
+                storage, cfg, send, "潜龙在渊", trade_date, TaskName.QIANLONG,
+                States.QIANLONG, cached["snapshot"], cached.get("anomalies", []),
+                build_qianlong_email,
+            )
             return cached
 
     if trade_date != latest_trade_date:
@@ -702,9 +766,7 @@ def run_qianlong_task(
         trade_date, TaskName.QIANLONG, States.QIANLONG
     )
     subject, html, has = build_qianlong_email(trade_date, new_ql, snap_status, anomalies)
-    if send and (has or cfg.email.send_when_empty):
-        if send_email(cfg.email, subject, html):
-            storage.mark_notified([t["id"] for t in new_ql])
+    _send_task_email(storage, cfg, send, "潜龙在渊", subject, html, has, new_ql)
 
     status = TaskStatus.PARTIAL if anomalies else TaskStatus.SUCCESS
     storage.finish_task_run(
