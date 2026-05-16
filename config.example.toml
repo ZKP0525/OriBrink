@@ -1,0 +1,52 @@
+# oribrink 配置示例。
+# 复制为 config.toml 后修改，或用环境变量 OB_CONFIG 指定路径。
+# CLI 也可用 --config 指定。
+
+[storage]
+# SQLite 数据库路径。相对路径相对于当前工作目录。
+db_path = "data/oribrink.db"
+
+[datasource]
+# 东财日 K 被限流时自动回退腾讯源；故东财少重试、快速回退即可
+retry_attempts = 2         # akshare 调用最大尝试次数（含首次）
+retry_backoff = 1.0        # 重试退避基数（秒），第 n 次重试睡 n*backoff
+request_interval = 0.3     # 逐股请求（历史日 K / 竞价）间隔，调大更稳但更慢
+
+[tushare]
+# 仅 collect/backtest 使用；日常 kanglong/qianlong 仍走 AkShare。
+token = ""
+endpoint = "http://tsy.xiaodefa.cn"
+raw_dir = "data/tushare/raw"
+request_interval = 0.65    # 120 次/分钟以内，避免触发冷却
+timeout = 30.0
+retry_attempts = 3         # 单次超时/连接失败时重试
+retry_backoff = 10.0       # 第 n 次失败后等待 n*backoff 秒
+
+[strategy]
+min_lianban_count = 3                       # 飞龙在天最小连板数
+volume_ratio_threshold = 1.5                # 亢龙有悔放量阈值（今日量/昨日量）
+gap_open_threshold = 0.03                   # 潜龙在渊高开阈值
+small_cap_threshold = 8000000000            # 小流通市值边界（元），80 亿
+small_cap_auction_ratio_qualified = 0.05    # 小票竞价量占比合格线
+small_cap_auction_ratio_excellent = 0.10    # 小票竞价量占比优质线
+large_cap_auction_ratio_qualified = 0.025   # 大票竞价量占比合格线
+
+[snapshot]
+kanglong_enabled = true                     # 是否生成亢龙快照
+qianlong_enabled = true                     # 是否生成潜龙快照
+overwrite_on_rerun = false                  # 重跑时 true=覆盖任务快照, false=写入 manual 快照
+
+[export]
+default_format = "csv"                      # table / csv / json
+dir = "exports"                             # 导出文件目录
+
+[email]
+enabled = false                             # false 时仅打印不发送
+smtp_host = "smtp.example.com"
+smtp_port = 465
+use_ssl = true
+username = "you@example.com"
+password = "your-smtp-password-or-token"
+sender = "you@example.com"
+recipients = ["you@example.com"]
+send_when_empty = false                     # 无结果时是否仍发送摘要
