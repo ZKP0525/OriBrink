@@ -167,6 +167,7 @@ def _summary_table(
     rows: list[dict], selected_date: str | None, start: str, end: str, mode: str
 ) -> str:
     table_rows = []
+    card_rows = []
     for r in reversed(rows):
         date = r["trade_date"]
         url = (
@@ -187,9 +188,25 @@ def _summary_table(
                 _h(r["errors"]),
             ]
         )
+        card_cls = " summary-card selected" if date == selected_date else " summary-card"
+        card_rows.append(
+            f"""
+            <a class='{card_cls}' href='{_h(url)}'>
+              <span class='summary-card-date'>{_h(date)}</span>
+              <span class='summary-card-grid'>
+                <span class='metric prev'><b>{_h(r["yesterday_kanglong"])}</b><em>昨日亢龙</em></span>
+                <span class='metric qianlong'><b>{qianlong}</b><em>今日潜龙</em></span>
+                <span class='metric failed'><b>{failed}</b><em>失败</em></span>
+                <span class='metric kanglong'><b>{today_kanglong}</b><em>今日亢龙</em></span>
+              </span>
+            </a>
+            """
+        )
     return (
         "<div class='summary-scroll'>"
         + _table(["日期", "昨日亢龙", "今日潜龙", "失败亢龙", "今日亢龙", "异常"], table_rows)
+        + "</div><div class='summary-cards'>"
+        + "".join(card_rows)
         + "</div>"
     )
 
@@ -283,6 +300,7 @@ th{color:var(--muted);font-weight:700;background:#fbfcfe}
 .summary-scroll{min-height:0;overflow:auto;border:1px solid var(--line);border-radius:12px;background:white}
 .summary-scroll table{border-collapse:separate;border-spacing:0}
 .summary-scroll thead th{position:sticky;top:0;z-index:1}
+.summary-cards{display:none}
 a{color:var(--blue-dark);text-decoration:none}
 a.selected{font-weight:700;color:#111827}
 .muted,.empty{color:var(--muted);font-size:13px}
@@ -301,15 +319,50 @@ a.selected{font-weight:700;color:#111827}
 .badge.failed{background:#fee2e2;color:#991b1b}
 .badge.watch{background:#fef3c7;color:#92400e}
 @media(max-width:980px){
-html,body{overflow:auto;height:auto}
+html,body{height:auto;min-height:100%;overflow:auto}
 body{display:block}
-main{grid-template-columns:1fr;padding:14px;overflow:visible}
-header{padding:16px}
+header{position:sticky;top:0;z-index:10;padding:12px 14px}
+header h1{font-size:16px}
+main{display:block;padding:12px;overflow:visible}
+section{border-radius:14px;padding:14px;box-shadow:0 8px 22px rgba(18,24,38,.05);margin-bottom:12px}
+h2{font-size:16px;margin-bottom:10px}
+h3{font-size:14px;margin:16px 0 8px}
+ul{font-size:12px;line-height:1.65;margin-left:16px}
 .rule ul{grid-template-columns:1fr}
-.summary-scroll{max-height:420px}
-.detail{overflow:visible}
-form{grid-template-columns:1fr 1fr}
+form{grid-template-columns:1fr 1fr;gap:9px;margin-bottom:12px}
+label{font-size:11px;gap:5px}
+input,select{height:40px;border-radius:10px;font-size:14px;padding:0 10px}
 button{width:100%}
+.summary-panel{display:block;overflow:visible}
+.summary-scroll{display:none}
+.summary-cards{display:grid;grid-template-columns:1fr;gap:8px;max-height:46vh;overflow:auto;padding-right:2px}
+.summary-card{display:block;border:1px solid var(--line);border-radius:12px;background:#fff;padding:10px 11px;color:var(--ink)}
+.summary-card.selected{border-color:#8db2ff;box-shadow:0 0 0 3px rgba(36,99,235,.10)}
+.summary-card-date{display:block;font-size:15px;font-weight:780;margin-bottom:8px;color:var(--blue-dark)}
+.summary-card-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.summary-card-grid .metric{display:grid;gap:3px;min-width:0;border-radius:12px;padding:8px 9px;background:#f3f6fa}
+.summary-card-grid b{font-size:16px;line-height:1;color:var(--ink)}
+.summary-card-grid em{font-style:normal;font-size:10px;color:var(--muted);white-space:nowrap}
+.summary-card-grid .prev{background:#eef4ff}
+.summary-card-grid .prev b{color:#1d4ed8}
+.summary-card-grid .qianlong{background:#dcfce7}
+.summary-card-grid .qianlong b{color:#166534}
+.summary-card-grid .failed{background:#fee2e2}
+.summary-card-grid .failed b{color:#991b1b}
+.summary-card-grid .kanglong{background:#fef3c7}
+.summary-card-grid .kanglong b{color:#92400e}
+.detail{overflow:visible}
+.detail section{padding-bottom:18px}
+.wide{margin-left:-2px;margin-right:-2px;border-radius:10px}
+.wide table{min-width:640px;font-size:12px}
+th,td{padding:8px 8px}
+.badge{min-width:18px;padding:2px 7px;font-size:11px}
+@media(max-width:430px){
+form{grid-template-columns:1fr}
+button{height:40px}
+.summary-card-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.wide table{min-width:600px}
+}
 }
 """
 
